@@ -1,0 +1,3 @@
+# No secrets yet. Before encrypting, replace [] with the creation rule
+# documented in secrets/README.md, using real operator/host age recipients.
+creation_rules: []

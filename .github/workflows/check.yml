@@ -1,0 +1,30 @@
+name: Validate NixOS
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: cachix/install-nix-action@d9186cbdca7adedf113a159fa91f725a27866771 # v31
+        with:
+          extra_nix_config: |
+            experimental-features =
+      - name: Format, lint, and evaluate
+        run: ./scripts/check.sh
+      - name: Build test system and disko (no activation or disk writes)
+        run: |
+          nix-build tests/build.nix -A system -o result-ci-system
+          nix-build tests/build.nix -A disko -o result-ci-disko

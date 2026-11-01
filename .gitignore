@@ -7,3 +7,16 @@ result-*
 
 # Ignore NixOS interactive test driver history
 **/.nixos-test-history
+
+# Private identities and common plaintext scratch files; encrypted SOPS
+# payloads in secrets/ must remain tracked. These rules are not a secret scanner.
+.env
+.env.*
+*.pem
+*.key
+*.agekey
+keys.txt
+id_ed25519
+id_rsa
+secrets/*.plaintext.*
+secrets/*.dec.*
