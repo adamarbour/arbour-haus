@@ -19,9 +19,10 @@ fi
 trap 'if [[ -L result-deploy ]]; then rm -- result-deploy; fi; echo "Build failed: no new deployment candidate was produced." >&2' ERR
 
 bash scripts/check.sh --deployment
-# Let nix-build register the output symlink as a GC root until activation.
-system=$(nix-build "$root" --out-link result-deploy \
-  -A nixosConfigurations.arbour-haus.config.system.build.toplevel)
+# Keep the exact built closure rooted until activation.
+nix build --no-update-lock-file --out-link result-deploy \
+  "path:$root#nixosConfigurations.arbour-haus.config.system.build.toplevel"
+system=$(readlink result-deploy)
 test -x "$system/bin/switch-to-configuration"
 printf 'Deployment candidate: %s/result-deploy -> %s\n' "$root" "$system"
 echo "Built with real settings. Not activated or boot-tested."

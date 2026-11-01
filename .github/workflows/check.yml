@@ -21,10 +21,10 @@ jobs:
       - uses: cachix/install-nix-action@d9186cbdca7adedf113a159fa91f725a27866771 # v31
         with:
           extra_nix_config: |
-            experimental-features =
+            experimental-features = nix-command flakes
       - name: Format, lint, and evaluate
         run: ./scripts/check.sh
       - name: Build test system and disko (no activation or disk writes)
         run: |
-          nix-build tests/build.nix -A system -o result-ci-system
-          nix-build tests/build.nix -A disko -o result-ci-disko
+          nix build --no-update-lock-file .#checks.x86_64-linux.fixture-system -o result-ci-system
+          nix build --no-update-lock-file .#checks.x86_64-linux.fixture-disko -o result-ci-disko

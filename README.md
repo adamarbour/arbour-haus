@@ -1,193 +1,192 @@
 # arbour-haus
 
-Single-host, non-flake NixOS configuration for a future Home Assistant server.
+A single-host NixOS flake for an impermanent, SSH-administered server.
 Home Assistant is **not enabled yet**.
 
-- **npins** locks all sources in `npins/sources.json`, including the stable
-  **NixOS 26.05** channel. No `flake.nix`, `flake.lock`, registry, or experimental
-  Nix features are needed.
-- **flake-parts** is called as an ordinary Nix library with the pinned nixpkgs
-  library. The `flake.*` option names are just its module API, not flake usage.
-- **Dendritic modules:** every `.nix` file in `modules/` is automatically imported
-  as a flake-parts module. Features define `flake.modules.nixos.<feature>`;
-  `modules/host.nix` composes them into the sole host, `arbour-haus`.
-- **disko:** one GPT disk, 512 MiB EFI system partition, and a Btrfs partition
-  with separate `/nix` and `/persist` subvolumes. No swap or disk encryption.
-- **Impermanence:** `/` is tmpfs, empty on each boot. Only explicitly declared
-  state is kept under `/persist`; `/nix` and `/boot` also survive reboots.
-- **sops-nix:** ready for age encryption using the host SSH identity. All
-  encrypted payloads live in `secrets/`; none are required to boot.
+- Stable **NixOS 26.05**, with dependencies pinned in `flake.lock`.
+- Ordinary NixOS modules and explicit imports; no flake-parts or Home Manager.
+- **disko:** one UEFI/GPT disk, 512 MiB EFI partition, Btrfs `/nix` and
+  `/persist` subvolumes. No swap or disk encryption.
+- **Impermanence:** tmpfs `/`, with an explicit persistence allowlist.
+- **Access:** key-only OpenSSH as `admin`, over the LAN or Tailscale.
+- **Updates:** reviewed Git revisions, manually built and activated on the host.
+- **sops-nix:** ready for encrypted secrets; none are required for first boot.
 
 ## Layout
 
 ```text
-default.nix             # npins -> flake-parts -> nixosConfigurations
-configuration.nix       # legacy nixos-rebuild bridge to the same host module
-host-settings.nix       # deployment-specific architecture, disk and public keys
-lib/import-tree.nix     # recursive module discovery
-modules/                # host composition and feature modules
-npins/                  # generated source loader and committed pins
-secrets/                # encrypted payloads and setup instructions
-shell.nix               # pinned npins, sops, age, ssh-to-age and nixfmt
-tests/                  # fixture evaluation/build and legacy bridge checks
-scripts/check.sh        # pinned formatter, shell lint and evaluation gate
-scripts/build.sh        # real host build -> result-deploy (never activates)
-AGENTS.md               # repository-wide instructions for future coding agents
-docs/                   # engineering standards and deployment acceptance
+flake.nix / flake.lock       # dependencies, sole host, tools and isolated checks
+host-settings.nix           # target architecture, disk and public SSH keys
+hosts/arbour-haus/           # composition and hardware settings
+modules/                    # explicit, ordinary NixOS modules
+secrets/                    # SOPS-encrypted payloads and instructions
+tests/                      # isolated fixtures; never installation entry points
+scripts/check.sh            # pinned formatting, shell lint and evaluation
+scripts/build.sh            # real-host build -> result-deploy; never activates
+docs/                       # engineering and deployment/recovery procedures
 ```
 
 ## Configure the target
 
-Edit `host-settings.nix`:
+Review `host-settings.nix` even if its disk and key are already populated:
 
-1. Confirm `system` (defaults to `x86_64-linux`). The current boot setup assumes
-   a generic PC/VM with **UEFI**, not a Raspberry Pi or BIOS-only machine.
-2. Set `disk` to the correct persistent `/dev/disk/by-id/...` path, inspected
-   with `lsblk` and `ls -l /dev/disk/by-id` on the target.
-3. Add your actual SSH public key to `adminAuthorizedKeys`.
-4. Review `modules/host.nix` for hardware-specific requirements. Inspect
-   `nixos-generate-config --show-hardware-config` on the target and incorporate
-   relevant kernel/platform settings there. Do not duplicate its filesystem
-   entries: disko owns those.
+1. Confirm `system` and **UEFI** support. The baseline is a generic x86_64 PC/VM,
+   not a Raspberry Pi or BIOS-only machine.
+2. Inspect `lsblk` and `/dev/disk/by-id` on the target and confirm the exact disk.
+3. Confirm `adminAuthorizedKeys` contains your actual public key.
+4. Inspect `nixos-generate-config --show-hardware-config` on the target and
+   incorporate relevant hardware settings in `hosts/arbour-haus/hardware.nix`.
+   Do not copy its filesystem entries: disko owns those.
 
-Missing disk/key values intentionally fail NixOS build assertions. DHCP, UTC,
-SSH-key-only access as `admin`, passwordless sudo for wheel, and a firewall
-allowing SSH are the baseline. Root login is disabled. Protect the admin key;
-it grants root-equivalent access. Reserve the host address in your DHCP server
-if desired; the hostname alone does not guarantee LAN DNS resolution.
+Missing disk/key settings intentionally fail build assertions. DHCP, UTC,
+key-only SSH, disabled root login, and passwordless sudo for `admin` are the
+baseline. The admin key grants root-equivalent access. Reserve a LAN address
+in DHCP if useful; the hostname alone does not guarantee LAN DNS resolution.
+Do not expose SSH through router port forwarding. The host permits TCP 22 on
+its interfaces; the router and tailnet policy determine external reachability.
 
 ## Check and build
 
+Use Nix with `nix-command` and `flakes` enabled. On a workstation where needed,
+set `NIX_CONFIG='experimental-features = nix-command flakes'` for the session.
+The installed host enables these features declaratively.
+
 ```sh
-# Pinned formatting/lint and evaluation with isolated test settings; macOS OK.
-./scripts/check.sh
-
-# Also evaluate the real host settings (requires disk and SSH keys to be set).
-./scripts/check.sh --deployment
-
-# Requires a matching Linux builder; produces result-deploy, never activates.
-./scripts/build.sh
+./scripts/check.sh                 # pinned formatter/lint + isolated eval; macOS OK
+./scripts/check.sh --deployment    # additionally evaluate the real host settings
+./scripts/build.sh                 # matching Linux builder; result-deploy, no activation
+nix develop                       # pinned nixfmt, shellcheck, sops, age, ssh-to-age
 ```
 
-See [engineering standards](docs/CONTRIBUTING.md) and the
-[deployment acceptance checklist](docs/DEPLOYMENT.md). Future coding sessions
-must follow [AGENTS.md](AGENTS.md). CI runs checks and a Linux fixture build;
-that is not proof the real host is deployment-ready or boot-tested.
+Scripts use a local path flake so new files are visible before staging. Normal
+Git-flake commands such as `nix flake check` see only Git-tracked files: add new
+files before using those commands. Do not edit the checkout during a build.
+Checks and CI fixture builds are not proof that the target boots.
+
+See [engineering standards](docs/CONTRIBUTING.md),
+[deployment acceptance](docs/DEPLOYMENT.md), and [agent instructions](AGENTS.md).
 
 ## Persistence policy
 
-`modules/persistence.nix` is the initial allowlist:
-
 | Persistent path | Purpose |
 | --- | --- |
-| `/etc/nixos` | Configuration checkout, backed by `/persist/etc/nixos` |
-| `/var/lib/nixos` | Stable system UID/GID allocations and NixOS state |
+| `/etc/nixos` | Root-owned Git checkout, backed by `/persist/etc/nixos` |
+| `/var/lib/nixos` | Stable UID/GID allocation and system state |
 | `/var/lib/systemd` | Random seed and persistent timer state |
-| `/var/lib/dhcpcd` (when enabled) | Stable DHCP identity and leases |
+| `/var/lib/dhcpcd` (when enabled) | DHCP identity and leases; dhcpcd:dhcpcd, 0750 |
+| `/var/lib/tailscale` | Node identity and preferences; root:root, 0700 |
 | `/var/log` | Diagnostics; journald capped at 256 MiB |
 | `/etc/machine-id` | Stable machine identity |
-| Configured SSH host keys and public keys | Stable SSH identity and sops-nix decryption |
+| Configured SSH host keys and public keys | Stable SSH identity and sops decryption |
 
-Everything else on root, including `/home`, `/root`, `/tmp`, and unlisted
-`/var/lib` state, disappears at reboot. Declarative configuration is recreated
-from `/nix/store`. Keep working files in the persisted checkout or deliberately
-add a narrow persistence entry; do not broadly persist `/etc` or `/var`.
+The checkout is root:root, 0755. System state otherwise retains upstream
+ownership/modes; SSH private keys must remain root-only. Homes (`/home`,
+`/root`), `/tmp`, and all unlisted state disappear at reboot. Do not broadly
+persist `/etc`, `/var`, or `/home`. Future services must declare their state,
+ownership, backup policy, and runtime secrets alongside their module.
 
-The root tmpfs can use up to **25% of RAM** (allocated on demand). Large
-transient writes can fill it or exhaust memory; put large build/download work
-on persistent storage and size the target's RAM accordingly. `/nix`, `/persist`
-and `/boot` are not wiped, and impermanence is not a secure-erasure guarantee.
-Back up `/persist` and review its contents as you add features. Home Assistant
-will need its state directory explicitly persisted when enabled.
-
-**Existing installation:** this is a new disk layout, not an in-place migration.
-Do not simply switch an existing ext4-root host to this configuration. Back up
-its data, configuration and SSH host keys, then reinstall (or plan a separate,
-manual filesystem migration). Running disko destroys the old disk contents.
+Root tmpfs can use **25% of RAM**, allocated on demand. Put large downloads and
+build work on persistent storage. Impermanence is not secure erasure or a
+backup: `/nix`, `/persist`, and `/boot` survive. Back up `/persist` securely,
+particularly host keys, Tailscale identity, encrypted secrets, and the checkout;
+keep reviewed configuration in an off-host Git remote. Treat identity backups
+as private credentials. See [recovery](docs/DEPLOYMENT.md#recovery).
 
 ## Initial installation
 
-Boot the target using a NixOS installer with UEFI and network connectivity.
-Become root (`sudo -i`), clone this repository to `/tmp/arbour-haus`, and edit
-its target settings as above. If Git is unavailable, use `nix-shell -p git`.
-Run all commands below from `/tmp/arbour-haus`.
-
-**The disko script irreversibly erases the configured disk. Check the disk
-identity and back up existing data before running it. Do not run it on the
-development machine or as part of routine updates.**
+This is a fresh installation, not an in-place filesystem migration. Boot a
+NixOS installer in UEFI mode with LAN connectivity, become root, and clone the
+reviewed repository to `/tmp/arbour-haus`. Use installer media with Git
+available. Enable flakes on the installer and review the real target settings
+above.
+Run from the checkout:
 
 ```sh
-# Check and fully build the real system before doing anything destructive.
 ./scripts/build.sh
+```
 
-# Build the pinned disko script, then explicitly partition/format/mount /mnt.
-nix-build -A nixosConfigurations.arbour-haus.config.system.build.diskoScript \
-  -o result-disko
+**Stop unless that real-host build succeeds. The following disko operation
+irreversibly erases the configured disk. Independently verify its identity and
+back up any existing contents. Never run it for an ordinary update.**
+
+```sh
+nix build --no-update-lock-file \
+  .#nixosConfigurations.arbour-haus.config.system.build.diskoScript -o result-disko
 ./result-disko
 
-# Write directly into persistent storage: /mnt/etc is currently ephemeral.
-# Impermanence exposes this checkout at /etc/nixos after boot.
+# /mnt/etc is ephemeral; copy directly to its persistent backing storage.
 mkdir -p /mnt/persist/etc/nixos
 cp -a /tmp/arbour-haus/. /mnt/persist/etc/nixos/
+chown -R root:root /mnt/persist/etc/nixos
 
-# Install exactly the closure that passed the build gate above.
+# Install exactly the closure that passed the build gate.
 nixos-install --system "$(readlink /tmp/arbour-haus/result-deploy)" --no-root-passwd
 reboot
 ```
 
-After reboot, connect using `ssh admin@<host-ip>`. There is no password-based
-fallback; verify that the configured public key is yours before installation.
-The generic layout is unencrypted: physical access is outside its threat model.
+Connect with `ssh admin@<lan-ip>`. There is no password fallback. Verify the
+host fingerprint through a trusted channel. This unencrypted layout assumes
+physical access is outside the threat model. Perform the acceptance checks in
+[deployment documentation](docs/DEPLOYMENT.md) before relying on the host.
 
-Before relying on the host, verify persistence over a real reboot:
+## Tailscale enrollment
 
-```sh
-# Record these, reboot, and confirm they remain unchanged.
-cat /etc/machine-id
-ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
-sudo touch /persist/persistence-check
-sudo touch /root/ephemeral-check
-sudo reboot
-# After reconnecting:
-sudo test -e /persist/persistence-check
-sudo test ! -e /root/ephemeral-check
-findmnt /
-findmnt /nix
-findmnt /persist
-sudo test -f /etc/nixos/configuration.nix
-sudo rm /persist/persistence-check
-```
-
-## Subsequent deployments
-
-On the host, update the checkout at `/etc/nixos` (or copy a reviewed revision
-there), then build a candidate:
+While connected over LAN SSH, enroll interactively:
 
 ```sh
-./scripts/build.sh
+sudo tailscale up --ssh=false --accept-routes=false --accept-dns=false
+sudo tailscale status
 ```
 
-Follow [deployment acceptance and recovery](docs/DEPLOYMENT.md) to review and
-activate that exact `result-deploy` closure. No activation is automated. The
-legacy `configuration.nix` bridge remains available for `nixos-rebuild`, using
-the installed pinned `nix.nixPath`; no flake argument is used. Keep console
-access available and a known-good generation until reboot checks pass.
+Approve the node if required by your tailnet. Configure tailnet grants/ACLs to
+allow only intended administrators to reach this node on TCP 22; enrollment
+alone is not an access policy. Review device key expiry for an unattended
+server. Test `ssh admin@<tailscale-ip>` from an authorized tailnet client.
+
+Tailscale SSH is disabled: both paths use the same OpenSSH key authentication.
+There is no exit node, subnet routing, Taildrop, or blanket trusted interface.
+UDP 41641 is opened for tunnel transport. The persisted root-only state keeps
+enrollment across reboots; no auth key or SOPS secret is needed. Loss of this
+state requires re-enrollment; do not run restored copies of an identity on two
+machines. LAN SSH remains the independent recovery path.
+
+## Git-based updates
+
+On the host, update the root-owned checkout to a reviewed revision:
+
+```sh
+cd /etc/nixos
+sudo git status --short             # stop and reconcile local changes first
+sudo git pull --ff-only
+sudo ./scripts/build.sh
+```
+
+Use a public/readable Git remote or a separately provisioned read-only runtime
+credential for private repositories. No Git private key is installed by this
+configuration; homes and their credentials are ephemeral. Never put a Git
+credential in the flake or its URLs.
+
+Review and activate the exact candidate following
+[deployment acceptance and recovery](docs/DEPLOYMENT.md). Nothing automatically
+pulls Git or activates updates. Keep a working SSH session and known-good
+system generation until reboot acceptance passes.
 
 ## Dependency updates
 
+On the development checkout:
+
 ```sh
-nix-shell
-npins show
-npins update                 # nixpkgs stays within the pinned stable release
-./scripts/check.sh
-# Build with real settings on Linux before deploying: ./scripts/build.sh
-# Review and commit npins/sources.json with the configuration changes.
+nix flake update                  # or: nix flake update nixpkgs
+./scripts/check.sh --deployment
+# Review and commit flake.lock alongside related configuration changes.
+# Build real settings on Linux before activation: ./scripts/build.sh
 ```
 
-The auxiliary projects track pinned commits on their upstream branches; updates
-must be tested against stable nixpkgs. To migrate NixOS releases explicitly use
-`npins add --name nixpkgs channel nixos-<release>`. Do **not** automatically bump
-`system.stateVersion` when updating nixpkgs. Keep the generated
-`npins/default.nix` committed; do not hand-edit it.
+Nixpkgs stays on `nixos-26.05` until an explicit release migration; other inputs
+track locked upstream commits. All flake inputs that need nixpkgs follow the
+same stable pin. Impermanence is a source-only input to avoid unrelated
+upstream development dependencies. Do not bump `system.stateVersion` with
+routine updates. This migration preserves the existing dependency revisions
+and disk layout; it replaces npins and the legacy rebuild bridge.
 
-See [secrets/README.md](secrets/README.md) before adding any secrets.
+See [secrets/README.md](secrets/README.md) before adding secrets.

@@ -7,7 +7,7 @@ No secret is required for the initial installation.
 
 ## First secret (after the host has booted)
 
-On your trusted workstation, enter `nix-shell` in the repository. Create an
+On your trusted workstation, enter `nix develop` in the repository. Create an
 operator identity outside the repository and back it up securely. Do not keep
 it in the server's ephemeral home directory:
 
@@ -46,10 +46,14 @@ editor followed by a commit:
 sops secrets/arbour-haus.yaml
 ```
 
-Add a key such as `example: value` in the SOPS editor. Then enable the commented
-`defaultSopsFile` and `secrets.example` declarations in `modules/secrets.nix`.
+Add the needed service secret in the SOPS editor. In `modules/secrets.nix`,
+declare `sops.defaultSopsFile = ../secrets/arbour-haus.yaml;` and the matching
+`sops.secrets.<name>` entry with the consumer's owner/group/mode. Add the
+new encrypted file to Git so flake evaluation can see it. Update the tests
+that currently assert no secrets are configured, and document consumer startup
+ordering and backup/restore requirements in the same change.
 Secret values stay encrypted on disk (SOPS metadata is public); sops-nix
-decrypts at activation into `/run/secrets`. Configure consumers with `config.sops.secrets.example.path`,
+decrypts at activation into `/run/secrets`. Configure consumers with `config.sops.secrets.<name>.path`,
 never `builtins.readFile` (which can leak plaintext into the Nix store).
 
 When recipients change, run `sops updatekeys secrets/arbour-haus.yaml`.
@@ -60,5 +64,8 @@ Back it up securely: reinstalling without restoring it changes its recipient,
 so use the operator identity to re-encrypt for the new host key. For secrets
 needed on the *first* boot, provision the host identity out of band into
 `/mnt/persist/etc/ssh` before activation, with private keys owned by root and
-mode `0600`; this scaffold intentionally avoids that dependency. Decrypted
-secrets in `/run/secrets` remain ephemeral and are recreated each boot.
+mode `0600`; this configuration intentionally avoids that dependency.
+Tailscale enrollment is interactive and uses its persisted node state, not a
+SOPS auth key. Back up that state as private identity material, separately from
+encrypted Git payloads. Decrypted secrets in `/run/secrets` remain ephemeral
+and are recreated each boot.

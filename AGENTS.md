@@ -8,15 +8,17 @@ preserve existing user changes. These instructions apply to the whole repo.
 
 ## Architecture and safety invariants
 
-- This is one NixOS host, `arbour-haus`. Do not introduce flakes, Home Manager,
-  deployment frameworks, or additional hosts unless requested.
-- All external Nix sources must be hash-pinned through npins. Reuse the pinned
+- This is one NixOS host, `arbour-haus`, exposed through a plain flake. Do not
+  introduce Home Manager, flake-parts, deployment frameworks, or additional
+  hosts unless requested.
+- All external Nix sources must be hash-pinned in `flake.lock`. Reuse the pinned
   stable nixpkgs library; do not use channels, `<nixpkgs>`, registries, unlocked
-  fetches, or `builtins.getFlake` in project code. The generated npins loader
-  and upstream library internals are not handwritten project code.
-- Every `.nix` file under `modules/` is a flake-parts module. Declare features
-  through `flake.modules.nixos.<name>` and compose them in `modules/host.nix`.
-  Put helpers/tests outside that auto-imported tree. Avoid unnecessary abstractions.
+  fetches, or `builtins.getFlake` in project code. Upstream library internals
+  are not handwritten project code.
+- Files under `modules/` are ordinary NixOS modules, explicitly imported by
+  `hosts/arbour-haus/configuration.nix`. Keep hardware settings in the host's
+  `hardware.nix`, and helpers/tests outside production imports. Avoid automatic
+  discovery and unnecessary abstractions.
 - Root is ephemeral tmpfs. `/nix`, `/persist`, and `/boot` survive reboots.
   Every new stateful feature must explicitly declare narrowly scoped persistence,
   ownership, permissions, backup requirements, and secret dependencies.
