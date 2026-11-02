@@ -9,7 +9,9 @@ Home Assistant is **not enabled yet**.
   `/persist` subvolumes. No swap or disk encryption.
 - **Impermanence:** tmpfs `/`, with an explicit persistence allowlist.
 - **Access:** key-only OpenSSH as `admin`, over the LAN or Tailscale.
-- **Updates:** reviewed Git revisions, manually built and activated on the host.
+- **Updates:** PRs reviewed/approved and merged only by Adam Arbour; `main`
+  is the production boundary for planned automatic rebuild/deployment.
+  Current activation remains manual until deployment automation is implemented.
 - **sops-nix:** ready for encrypted secrets; none are required for first boot.
 
 ## Layout
@@ -25,6 +27,19 @@ scripts/check.sh            # pinned formatting, shell lint and evaluation
 scripts/build.sh            # real-host build -> result-deploy; never activates
 docs/                       # harness standards, installation and recovery
 ```
+
+## Pull requests and deployment
+
+**Treat merging into `main` as a production action: it is intended to trigger
+rebuild and deployment after checks pass.** All changes, including docs, go
+through feature branches and PRs. **Adam Arbour is the sole reviewer and
+approver, and only Adam may merge.** Humans and AI agents must not push directly
+to `main`, enable auto-merge, or bypass review.
+
+Read the [GitHub deployment policy](docs/GITHUB_DEPLOYMENT.md) for the workflow,
+required GitHub controls, and agent responsibilities. Today Actions only
+validates/builds fixtures; automatic production deployment and enforcement
+are not enabled by this documentation change.
 
 ## Configure the target
 

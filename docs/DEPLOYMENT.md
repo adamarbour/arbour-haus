@@ -1,5 +1,22 @@
 # Deployment acceptance and recovery
 
+## GitHub merge and approval policy
+
+**Merging into `main` is intended to trigger a real rebuild and deployment
+after successful checks.** Every change must arrive through a feature branch
+and PR. Adam Arbour is the sole reviewer and approver, and only Adam may merge.
+Humans and agents must treat that merge as a production action, not just source
+synchronization. See [GITHUB_DEPLOYMENT.md](GITHUB_DEPLOYMENT.md) for required
+reviews, agent restrictions, GitHub enforcement setup, and the planned pipeline.
+
+Current Actions only runs validation/fixture builds. The production workflow
+and repository protections are not enabled by these docs. Until automation is
+implemented and verified, the manual procedures below require explicit operator
+authorization. Once enabled, Adam's approved merge authorizes the workflow's
+routine activation only; destructive operations, identity changes, and reboots
+remain separately authorized. Manual procedures remain recovery/fallback paths,
+not a way to bypass review for normal updates.
+
 ## What counts as a deployment candidate
 
 The **real host configuration**, with operator-supplied disk and SSH keys,

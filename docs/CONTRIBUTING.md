@@ -1,5 +1,16 @@
 # Engineering standards
 
+## Pull requests and approval
+
+Follow [GITHUB_DEPLOYMENT.md](GITHUB_DEPLOYMENT.md) for every change. Work on a
+feature branch and open a PR to `main` when authorized; never push directly to
+`main`. Adam Arbour is the sole reviewer and approver, and only Adam merges.
+Neither an AI agent nor a passing check may substitute for his approval.
+Treat the merge as a production rebuild/deployment trigger under the planned
+automation, including for documentation-only changes. Current CI is still
+fixture validation, not production deployment. Branch protections and required
+reviews must be configured separately; documentation does not enforce them.
+
 ## Design
 
 Keep changes declarative and scoped to the single host. `flake.nix` exposes
@@ -20,7 +31,9 @@ channels, registries, `<nixpkgs>`, or unlocked fetches in project code.
 Review upstream compatibility when updating dependencies. Nixpkgs stays on the
 selected stable release unless a release migration is requested.
 `system.stateVersion` is an installation compatibility contract, not an update
-counter. Routine updates use Git on the host; activation is always explicit.
+counter. The planned normal update path is Adam-reviewed PRs followed by a
+merge-triggered build/deployment. Until implemented, use the documented manual
+procedures with explicit authorization; never infer activation from a merge.
 
 ## Stateful features
 
@@ -87,8 +100,10 @@ not installation or production entry points.
 
 GitHub Actions runs lint/evaluation and builds
 `checks.x86_64-linux.fixture-system` and `fixture-disko`, using commit-pinned
-actions. CI never activates, formats disks, enrolls Tailscale, or uses private
-keys. A fixture build does not certify the target hardware.
+actions. This existing validation workflow never activates, formats disks,
+enrolls Tailscale, or uses private keys. The separately planned production
+workflow must follow [GITHUB_DEPLOYMENT.md](GITHUB_DEPLOYMENT.md). A fixture
+build does not certify the target hardware.
 
 Update regression tests with features. Home Assistant and empty-secret checks
 must evolve when those features are intentionally enabled, not be removed to

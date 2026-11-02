@@ -68,8 +68,14 @@ outside this repository.
   Preserve user changes; do not stage, commit, push, or update pins unasked.
 - Document behavior and update regression coverage when behavior changes.
   Documentation-only edits still run the default check; no runtime claim follows.
-- Builds are not deployment authorization. Disk operations, install, activation,
-  reboot, and identity changes require explicit operator permission.
+- Follow [GITHUB_DEPLOYMENT.md](GITHUB_DEPLOYMENT.md): changes use feature
+  branches and PRs; Adam Arbour alone reviews, approves, and merges. Treat a
+  merge to `main` as the planned production rebuild/deployment trigger. Current
+  fixture CI is not that deployment workflow.
+- Builds alone are not deployment authorization. Once implemented, Adam's
+  approved merge authorizes only the automatic workflow's routine activation.
+  Ad hoc activation, disk operations, install, reboot, and identity changes
+  still require explicit operator permission.
 - Keep complete build logs outside the checkout, without secret contents.
   Wait for completion and inspect the exit status; a derivation path or a
   partially populated store is not success.

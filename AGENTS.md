@@ -2,11 +2,29 @@
 
 ## Start here
 
-Read `README.md`, `docs/CONTRIBUTING.md`, `docs/DEPLOYMENT.md`, and
-`secrets/README.md` before changing this repository. Also read `docs/HARNESS.md`
-when working on validation, builders, or deployment procedures. Inspect
+Read `README.md`, `docs/CONTRIBUTING.md`, `docs/DEPLOYMENT.md`,
+`secrets/README.md`, and `docs/GITHUB_DEPLOYMENT.md` before changing this
+repository. Also read `docs/HARNESS.md` when working on validation, builders,
+or deployment procedures. Inspect
 `git status` and preserve existing user changes. These instructions apply to
 the whole repo.
+
+## Pull requests and production boundary
+
+- Treat `main` as production: merging is intended to trigger a real rebuild
+  and deployment after checks pass. The deployment workflow is not implemented
+  yet; never confuse current fixture CI with production deployment.
+- Use feature branches and PRs for every change, including docs and workflows.
+  Adam Arbour (`@adamarbour`) is the sole reviewer and approver, and only Adam
+  may merge.
+- Never push directly to `main`, approve/merge a PR, enable auto-merge, bypass
+  review, or change GitHub protections. Do not commit, push a branch, or open a
+  PR without authorization. Passing checks does not replace Adam's approval.
+- Include validation, production impact, rollback, and reboot requirements in
+  the PR. New commits require renewed review. Follow `docs/GITHUB_DEPLOYMENT.md`
+  for the human/agent workflow and GitHub's self-approval limitation.
+- Adam's merge authorizes only the routine activation defined by the eventual
+  deployment workflow, not ad hoc agent deployment or reboot commands.
 
 ## Architecture and safety invariants
 
