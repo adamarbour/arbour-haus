@@ -1,7 +1,8 @@
 { mkHost, hostNames }:
 let
   settings = import ./host-settings.nix;
-  config = (mkHost settings).config;
+  host = mkHost settings;
+  config = host.config;
   unconfigured =
     (mkHost (
       settings
@@ -24,6 +25,11 @@ assert hostNames == [ "arbour-haus" ];
 assert failsWith "Set disk in host-settings.nix";
 assert failsWith "Set adminAuthorizedKeys in host-settings.nix";
 assert config.networking.hostName == "arbour-haus";
+assert builtins.elem (toString host.pkgs.ghostty.terminfo) (
+  map toString config.environment.systemPackages
+);
+assert builtins.elem "/share/terminfo" config.environment.pathsToLink;
+assert toString config.environment.etc.terminfo.source == "${config.system.path}/share/terminfo";
 assert config.nixpkgs.hostPlatform.system == "x86_64-linux";
 assert config.system.stateVersion == "26.05";
 assert config.fileSystems."/".fsType == "tmpfs";

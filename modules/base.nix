@@ -26,6 +26,8 @@
   environment.systemPackages = with pkgs; [
     git
     vim
+    # SSH clients forward TERM=xterm-ghostty; install only the terminal database.
+    ghostty.terminfo
   ];
   # Home Assistant and its firewall ports intentionally remain disabled.
 }

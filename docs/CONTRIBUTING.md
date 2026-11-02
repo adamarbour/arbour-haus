@@ -46,6 +46,21 @@ Private identities stay outside the repository. Encrypted payloads go only in
 `secrets/`. SOPS metadata and filenames are public. Ignore rules are not a
 secret scanner: inspect all diffs and untracked files before committing.
 
+## Harness standards
+
+See [HARNESS.md](HARNESS.md) for script contracts, Linux builder preflight,
+agent reporting requirements, and recorded build/installation status. Keep those
+contracts synchronized with script changes. Documentation-only changes still
+run `./scripts/check.sh`; they do not require a fresh system build unless a
+new deployment candidate is being claimed.
+
+Deployment procedures must support both a persisted Git checkout and manual
+transfer of an exact prebuilt closure. The latter requires no target-side Git
+or reevaluation. Both retain the build gate, root the candidate against GC,
+record the previous generation, and require explicit activation and reboot
+permission. A closure transfer does not synchronize source or persistent data.
+See [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Validation
 
 ```sh

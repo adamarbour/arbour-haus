@@ -3,8 +3,10 @@
 ## Start here
 
 Read `README.md`, `docs/CONTRIBUTING.md`, `docs/DEPLOYMENT.md`, and
-`secrets/README.md` before changing this repository. Inspect `git status` and
-preserve existing user changes. These instructions apply to the whole repo.
+`secrets/README.md` before changing this repository. Also read `docs/HARNESS.md`
+when working on validation, builders, or deployment procedures. Inspect
+`git status` and preserve existing user changes. These instructions apply to
+the whole repo.
 
 ## Architecture and safety invariants
 
@@ -49,6 +51,13 @@ preserve existing user changes. These instructions apply to the whole repo.
    VM or the authorized target before claiming runtime verification.
 6. Inspect the final diff. Report what changed, commands run/results, artifact
    path if built, and any remaining operator actions or untested behavior.
+   Follow the evidence levels in `docs/HARNESS.md`; never infer build success
+   from builder configuration, derivation evaluation, or an unrelated `result`.
+7. Deployment documentation must distinguish destructive first installation
+   from routine updates. Preserve the exact-candidate build gate, SSH recovery,
+   rollback, and reboot acceptance in both Git and Git-free workflows. Never
+   require Git on a target receiving only a prebuilt closure, or imply that
+   transferring a closure also updates its persisted source checkout.
 
 If tooling, hardware, secrets, or target settings prevent a check/build, state
 that plainly. Never claim "deployable", "tested", or "working" beyond the

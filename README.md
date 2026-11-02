@@ -23,7 +23,7 @@ secrets/                    # SOPS-encrypted payloads and instructions
 tests/                      # isolated fixtures; never installation entry points
 scripts/check.sh            # pinned formatting, shell lint and evaluation
 scripts/build.sh            # real-host build -> result-deploy; never activates
-docs/                       # engineering and deployment/recovery procedures
+docs/                       # harness standards, installation and recovery
 ```
 
 ## Configure the target
@@ -64,6 +64,7 @@ files before using those commands. Do not edit the checkout during a build.
 Checks and CI fixture builds are not proof that the target boots.
 
 See [engineering standards](docs/CONTRIBUTING.md),
+[harness contracts and builder troubleshooting](docs/HARNESS.md),
 [deployment acceptance](docs/DEPLOYMENT.md), and [agent instructions](AGENTS.md).
 
 ## Persistence policy
@@ -94,40 +95,20 @@ as private credentials. See [recovery](docs/DEPLOYMENT.md#recovery).
 
 ## Initial installation
 
-This is a fresh installation, not an in-place filesystem migration. Boot a
-NixOS installer in UEFI mode with LAN connectivity, become root, and clone the
-reviewed repository to `/tmp/arbour-haus`. Use installer media with Git
-available. Enable flakes on the installer and review the real target settings
-above.
-Run from the checkout:
+Follow the [initial deployment procedure](docs/DEPLOYMENT.md#initial-deployment-fresh-installation-only)
+on the target's UEFI NixOS installer. It covers reviewing hardware/disk/key
+settings, successfully building the real candidate, explicitly authorized disk
+erasure, installing that exact closure, and reboot acceptance. **Disk formatting
+irreversibly destroys existing contents; never use it for an ordinary update.**
 
-```sh
-./scripts/build.sh
-```
+The operator has reported a successful initial installation, SSH access, and
+Tailscale setup. Full reboot/persistence acceptance has not been recorded here.
+See the [build history](docs/HARNESS.md#build-and-installation-status) for an
+earlier local build failure. Every new candidate must still pass the build gate.
 
-**Stop unless that real-host build succeeds. The following disko operation
-irreversibly erases the configured disk. Independently verify its identity and
-back up any existing contents. Never run it for an ordinary update.**
-
-```sh
-nix build --no-update-lock-file \
-  .#nixosConfigurations.arbour-haus.config.system.build.diskoScript -o result-disko
-./result-disko
-
-# /mnt/etc is ephemeral; copy directly to its persistent backing storage.
-mkdir -p /mnt/persist/etc/nixos
-cp -a /tmp/arbour-haus/. /mnt/persist/etc/nixos/
-chown -R root:root /mnt/persist/etc/nixos
-
-# Install exactly the closure that passed the build gate.
-nixos-install --system "$(readlink /tmp/arbour-haus/result-deploy)" --no-root-passwd
-reboot
-```
-
-Connect with `ssh admin@<lan-ip>`. There is no password fallback. Verify the
-host fingerprint through a trusted channel. This unencrypted layout assumes
-physical access is outside the threat model. Perform the acceptance checks in
-[deployment documentation](docs/DEPLOYMENT.md) before relying on the host.
+Connect afterward with `ssh admin@<lan-ip>`. There is no password fallback.
+Verify the host fingerprint through a trusted channel. This unencrypted layout
+assumes physical access is outside the threat model.
 
 ## Tailscale enrollment
 
@@ -150,6 +131,30 @@ enrollment across reboots; no auth key or SOPS secret is needed. Loss of this
 state requires re-enrollment; do not run restored copies of an identity on two
 machines. LAN SSH remains the independent recovery path.
 
+## Ghostty SSH terminals
+
+The host installs `ghostty.terminfo` from pinned nixpkgs, not the graphical
+terminal application. This lets remote programs recognize Ghostty's forwarded
+`TERM=xterm-ghostty` over both LAN and Tailscale OpenSSH. It adds no writable
+state, secrets, ports, or persistence requirements. Do not install terminfo
+only in an ephemeral home or permanently override `TERM` to hide the problem.
+
+After rebuilding and activating via the [manual update procedure](docs/DEPLOYMENT.md#manual-redeployment-without-git-on-the-target),
+open a fresh Ghostty SSH session and verify on the host:
+
+```sh
+printf '%s\n' "$TERM"  # xterm-ghostty
+infocmp xterm-ghostty >/dev/null
+tput colors
+sudo infocmp xterm-ghostty >/dev/null
+```
+
+Also check `clear` and `vim` interactively. If the old generation prevents
+comfortable use before redeploying, connect once from Ghostty with
+`TERM=xterm-256color ssh admin@<host>` as a temporary compatibility fallback.
+Keep Ghostty's normal TERM for verification after activation. No Tailscale
+re-enrollment or reboot is needed for the terminfo change.
+
 ## Git-based updates
 
 On the host, update the root-owned checkout to a reviewed revision:
@@ -170,6 +175,15 @@ Review and activate the exact candidate following
 [deployment acceptance and recovery](docs/DEPLOYMENT.md). Nothing automatically
 pulls Git or activates updates. Keep a working SSH session and known-good
 system generation until reboot acceptance passes.
+
+## Manual updates without Git on the target
+
+Use the [prebuilt-closure redeployment procedure](docs/DEPLOYMENT.md#manual-redeployment-without-git-on-the-target):
+build with real settings on the workstation/Linux builder, transfer the complete
+closure over verified SSH, root it on the target, and explicitly activate that
+exact candidate. The target needs neither Git nor a rebuild. Do not rerun disko
+or installation. The persisted source checkout remains unchanged; retain source
+provenance separately and complete the same rollback/reboot acceptance checks.
 
 ## Dependency updates
 

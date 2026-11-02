@@ -70,6 +70,12 @@
         // lib.optionalAttrs (system == "x86_64-linux") {
           fixture-system = fixture.config.system.build.toplevel;
           fixture-disko = fixture.config.system.build.diskoScript;
+          ghostty-terminfo =
+            pkgs.runCommand "ghostty-terminfo-check" { nativeBuildInputs = [ pkgs.ncurses ]; }
+              ''
+                infocmp -A ${pkgs.ghostty.terminfo}/share/terminfo xterm-ghostty > /dev/null
+                touch "$out"
+              '';
         }
       );
     };
