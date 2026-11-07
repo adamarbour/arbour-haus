@@ -1,7 +1,13 @@
 # arbour-haus
 
 A single-host NixOS flake for an impermanent, SSH-administered server.
-Home Assistant is **not enabled yet**.
+Home Assistant is **not enabled yet**. [Iteration 2](docs/ITERATION-2.md) plans
+Home Assistant, Mosquitto, Zigbee2MQTT, and Z-Wave JS for two PoE network radios;
+the SONOFF hardware inventory and provisional addresses are recorded there.
+Home Assistant will be accessible over both LAN and Tailscale. The plan includes
+an [operator worksheet](docs/ITERATION-2.md#operator-fill-in-worksheet) for radio
+firmware/transport settings; implementation awaits those and provisioning details.
+Matter and Thread are deferred.
 
 - Stable **NixOS 26.05**, with dependencies pinned in `flake.lock`.
 - Ordinary NixOS modules and explicit imports; no flake-parts or Home Manager.
@@ -39,7 +45,9 @@ to `main`, enable auto-merge, or bypass review.
 Read the [GitHub deployment policy](docs/GITHUB_DEPLOYMENT.md) for the workflow,
 required GitHub controls, and agent responsibilities. Today Actions only
 validates/builds fixtures; automatic production deployment and enforcement
-are not enabled by this documentation change.
+are not enabled by this documentation change. GitHub deployment is currently
+paused in favor of iteration 2. When asked to revisit it, resume from the
+[saved deployment checkpoint](docs/GITHUB_DEPLOYMENT.md#paused-work-resume-github-deployment-here).
 
 ## Configure the target
 

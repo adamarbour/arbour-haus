@@ -24,6 +24,68 @@ implemented and verified. These documentation changes do not enable either.
 Until then, use the explicitly authorized [manual deployment procedure](DEPLOYMENT.md).
 Do not report a merged revision as deployed without deployment evidence.
 
+## Paused work: resume GitHub deployment here
+
+Adam explicitly deferred deployment automation to prioritize
+[iteration 2: Home Assistant and network radios](ITERATION-2.md).
+When asked to **"revisit GitHub deployment"**, read this section and the rest
+of this policy, inspect the current repository/workflows, and resume from the
+checkpoint below. Do not assume prerequisites have been completed or enable
+production deployment as part of unrelated work. Manual deployment remains
+the current path; the PR/Adam-only approval policy remains in force.
+
+### Checkpoint
+
+- Initial installation, SSH access, and Tailscale enrollment were reported by
+  Adam. Full runtime/reboot acceptance and a successful new local candidate
+  have not been recorded by the agent; recheck current evidence.
+- `@adamarbour` is the confirmed owner/reviewer; `.github/CODEOWNERS` exists.
+  GitHub rulesets, required reviews, and production environment settings have
+  not been verified. Resolve the self-approval constraint before enforcement.
+- No production deployment workflow has been implemented. Inspect
+  `.github/workflows/check.yml` rather than assuming it deploys anything.
+- The target Tailscale IP, verified SSH host public key, and dedicated CI SSH
+  public key have not been supplied. Do not guess them or reuse Adam's
+  personal private key.
+
+### Resume steps
+
+1. Collect only the target Tailscale IP, SSH host **public** key, and dedicated
+   deployment **public** key. Adam generates the deployment key outside the
+   repository, for example with `ssh-keygen -t ed25519 -f
+   ~/.ssh/arbour-haus-github -C github-deploy-arbour-haus`. An unattended key
+   needs a noninteractive authentication strategy; protect and scope it as a
+   production credential. Never request its private contents in chat.
+2. Implement declarative, narrowly scoped deployment access and document its
+   privilege boundary. Bootstrap it through an explicitly authorized manual
+   redeploy, preserving the independent admin recovery key. A deployment
+   capability can install root-running configuration; treat it as privileged
+   even if SSH commands are restricted.
+3. Adam creates a GitHub `production` environment restricted to `main`, with
+   Adam as its sole approver for initial tests. Plan `DEPLOY_HOST` and
+   `DEPLOY_KNOWN_HOSTS` environment variables and a `DEPLOY_SSH_KEY` environment
+   secret. Derive known_hosts from the independently verified public host key,
+   not an unverified `ssh-keyscan` result.
+4. Configure a dedicated Tailscale tag for ephemeral GitHub runners, an OAuth
+   client scoped for that enrollment, and network policy restricting the
+   deployment identity to this host on TCP 22. Store OAuth credentials in
+   GitHub environment secrets, not Git or chat. Audit existing grants: an
+   additional narrow grant does not override an existing broad allow rule.
+5. Implement the deployment contract below in a reviewed PR: commit-pinned
+   actions, real x86 Linux build, exact-closure transfer/rooting, serialized
+   activation, stale-run rejection, health checks, failure reporting, and no
+   automatic reboot. Keep production credentials out of PR validation.
+6. Test a main-branch deployment with the environment approval gate and record
+   commit/closure/health evidence. Exercise recovery before removing the extra
+   environment approval for unattended post-merge activation. Adam must
+   explicitly authorize that removal; the PR review gate remains mandatory.
+
+These names describe the planned interface, not an existing workflow. Never
+claim a secret, rule, key, or device setting has been provisioned without
+verification. The previously observed local initrd build failure is documented
+in [HARNESS.md](HARNESS.md#build-and-installation-status); it is not a reason
+to skip the real-system build gate.
+
 ## Human and agent workflow
 
 1. Read `AGENTS.md` and the required repository docs. Inspect `git status` and

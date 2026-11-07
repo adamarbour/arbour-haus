@@ -9,6 +9,21 @@ or deployment procedures. Inspect
 `git status` and preserve existing user changes. These instructions apply to
 the whole repo.
 
+## Current priorities and deferred work
+
+- Iteration 2 targets Home Assistant, Mosquitto, Zigbee2MQTT, and Z-Wave JS
+  with two LAN-connected PoE radios. Read `docs/ITERATION-2.md` before working
+  on it. Obtain actual models/firmware/endpoints and migration requirements;
+  do not guess hardware settings, reset radios, or invent network keys.
+  Adam confirmed fresh networks and Home Assistant access over both LAN and
+  Tailscale. Radio firmware/transport settings have explicit fill-in fields in
+  the iteration plan; do not replace them with guessed defaults or deploy them.
+- Matter and Thread are deferred. GitHub production deployment is also paused;
+  do not implement/enable it as part of the home-automation work.
+- When Adam asks to "revisit GitHub deployment", resume from the checkpoint in
+  `docs/GITHUB_DEPLOYMENT.md` under "Paused work: resume GitHub deployment here".
+  Recheck current code and prerequisites rather than assuming provisioning.
+
 ## Pull requests and production boundary
 
 - Treat `main` as production: merging is intended to trigger a real rebuild
